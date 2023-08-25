@@ -10,6 +10,7 @@ const Server = new ws.Server({port: Port})
 console.log(`Created Server @ Port ${Port}`)
 
 let Connections = []
+let Item
 
 function Init(Socket) {
 	Connections.push(Socket)
