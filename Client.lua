@@ -2,6 +2,7 @@ local wait = task.wait
 local Port = 13370
 local Connected, Socket
 
+local Script = Instance.new('BindableEvent')
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer.Name
 local KeepAlive = '{"Type":"KeepAlive","User":"'..LocalPlayer..'"}'
@@ -21,41 +22,45 @@ do
     end
 end
 
-local function log(Debug, ...)
+local function rawlog(Type, ID, Func, ...)
     Socket:Send(HttpService:JSONEncode({
-        Type = "CLIENT",
+        ID = ID,
+        Type = Type,
         User = LocalPlayer,
-        Debug = Debug,
         Args = {...}
     }))
+    if Func then
+        Func(...)
+    end
 end
 
-local function logprint(...)
-    Socket:Send(HttpService:JSONEncode({
-        Type = "OUTPUT",
-        User = LocalPlayer,
-        Args = {...}
+Script.Event:Connect(function(Text, ID)
+    local Function  = loadstring(Text)
+    local function log(...)
+        rawlog("CLIENT", ID, nil, ...)
+    end
+    local function logerror(...)
+        rawlog("ERROR", ID, error, ...)
+    end
+    setfenv(Function, setmetatable({
+        logprint = function(...)
+            rawlog("OUTPUT", ID, print, ...)
+        end,
+        logwarn = function(...)
+            rawlog("WARN", ID, warn, ...)
+        end,
+        logerror = logerror
+    }, {
+        __index = getgenv()
     }))
-    print(...)
-end
-
-local function logwarn(...)
-    Socket:Send(HttpService:JSONEncode({
-        Type = "WARN",
-        User = LocalPlayer,
-        Args = {...}
-    }))
-    warn(...)
-end
-
-local function logerror(...)
-    Socket:Send(HttpService:JSONEncode({
-        Type = "ERROR",
-        User = LocalPlayer,
-        Args = {...}
-    }))
-    error(...)
-end
+    log("Starting execution...")
+    xpcall(function()
+        Function()
+    end, function(Error)
+        logerror(Error)
+    end)
+    log("Finished execution.")
+end)
 
 Socket.OnMessage:Connect(function(Data)
     Data = HttpService:JSONDecode(Data)
@@ -63,18 +68,10 @@ Socket.OnMessage:Connect(function(Data)
         Socket:Send(KeepAlive)
     end
     if Data.type == "script" then
-        log(false, "Executing "..Data.ID)
-        xpcall(loadstring(Data.script), function(Error)
-            logerror(Error)
-        end)
-        log(false, "Execution of "..Data.ID.." finished.")
+        Script:Fire(Data.script, Data.ID)
     end
 end)
 
 Socket:Send(KeepAlive)
-logprint("This client is now connected to the network.")
 
-getgenv().log = log
-getgenv().logprint = logprint
-getgenv().logwarn = logwarn
-getgenv().logerror = logerror
+rawlog("OUTPUT", "Init", nil, "This user is now connected to the network.")
