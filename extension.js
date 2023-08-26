@@ -20,12 +20,14 @@ function Init(Socket) {
 	Socket.Updated = true
 	Socket.on("message", Message => {
 		let Data = JSON.parse(Message)
+		if (!Socket.User) {
+			Socket.User = Data.User
+		}
 		if (Data.Type == "KeepAlive") {
 			Socket.Updated = true
-			Socket.ID = Data.User
 			return;
 		}
-		const Final = `[${Data.Type} - ${Data.User}] (${Data.ID || "No ID"}): ${Data.Output.join(" ")}`
+		const Final = `[${Data.Type} - ${Data.User}] (${Data.ID || "No ID"}): ${Data.Args.join(" ")}`
 		if (Data.Debug) {
 			Debug.appendLine(Final)
 			return;
@@ -65,9 +67,14 @@ function activate(context) {
 
 	Timeout = setInterval(() => {
 		Connections.forEach(Connection => {
-			if (!Connection.Updated) return Connection.terminate();
+			if (!Connection.Updated) {
+				Connection.terminate();
+				const Index = Connections.indexOf(Value);
+				Connections.splice(Index, Index + 1)
+				return;
+			}
 			Connection.Updated = false
-			Connection:send(JSON.stringify({type: "keepalive"}))
+			Connection.send(JSON.stringify({type: "keepalive"}))
 		})
 	}, 5000)
 
