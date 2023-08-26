@@ -32,6 +32,9 @@ function Init(Socket) {
 			Debug.appendLine(Final)
 			return;
 		}
+		if (Data.Type == "ERROR") {
+			vs.window.showErrorMessage("An error occured. See the Execution Output for details.")
+		}
 		Output.appendLine(Final)
 	})
 }
