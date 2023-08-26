@@ -1,10 +1,10 @@
 local wait = task.wait
 local Port = 13370
 local Connected, Socket
-local KeepAlive = '{"Type":"KeepAlive"}'
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer.Name
+local KeepAlive = '{"Type":"KeepAlive","User":"'..LocalPlayer..'"}'
 
 local HttpService = game:GetService("HttpService")
 
@@ -19,6 +19,15 @@ do
         Connected, Socket = pcall(WebSocket.connect, Address)
         task.wait(3)
     end
+end
+
+local function log(Debug, ...)
+    Socket:Send(HttpService:JSONEncode({
+        Type = "CLIENT",
+        User = LocalPlayer,
+        Debug = Debug,
+        Args = {...}
+    }))
 end
 
 local function logprint(...)
@@ -54,15 +63,18 @@ Socket.OnMessage:Connect(function(Data)
         Socket:Send(KeepAlive)
     end
     if Data.type == "script" then
+        log(false, "Executing "..Data.ID)
         xpcall(loadstring(Data.script), function(Error)
-        
+            logerror(Error)
         end)
+        log(false, "Execution of "..Data.ID.." finished.")
     end
 end)
 
 Socket:Send(KeepAlive)
 logprint("This client is now connected to the network.")
 
+getgenv().log = log
 getgenv().logprint = logprint
 getgenv().logwarn = logwarn
 getgenv().logerror = logerror

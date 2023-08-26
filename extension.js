@@ -2,21 +2,36 @@ const Port = 13370
 
 const vs = require('vscode')
 const ws = require('ws')
+const rs = require('randomstring')
+const { appendFile } = require('fs')
 
 const Output = vs.window.createOutputChannel("Execution Output")
 Output.show()
+
+const Debug = vs.window.createOutputChannel("Execution Output - Debug")
 
 const Server = new ws.Server({port: Port})
 console.log(`Created Server @ Port ${Port}`)
 
 let Connections = []
-let Item
+let Item, Timeout
 
 function Init(Socket) {
 	Connections.push(Socket)
+	Socket.Updated = true
 	Socket.on("message", Message => {
 		let Data = JSON.parse(Message)
-		Output.appendLine(`[${Data.Type} - ${Data.User}]: ${Data.Output}`)
+		if (Data.Type == "KeepAlive") {
+			Socket.Updated = true
+			Socket.ID = Data.User
+			return;
+		}
+		const Final = `[${Data.Type} - ${Data.User}] (${Data.ID || "No ID"}): ${Data.Output.join(" ")}`
+		if (Data.Debug) {
+			Debug.appendLine(Final)
+			return;
+		}
+		Output.appendLine(Final)
 	})
 }
 
@@ -28,12 +43,34 @@ function activate(context) {
 	context.subscriptions.push(vs.commands.registerCommand('vsexecute.execute', () => {
 		// Execute
 		let Editor = vs.window.activeTextEditor
-		if (Editor) {
-			for (let Connection in Connections) {
-				Connections[Connection].send(JSON.stringify({type: "script", script: Editor.document.getText()}))
-			}
+		if (Editor.document.languageId == "code-runner-output" || !Editor) {
+			let Editors = vs.window.visibleTextEditors
+			if (Editors < 2) return;
+			Editor = null;
+			vs.window.visibleTextEditors.forEach(VisibleEditor => {
+				if (VisibleEditor.document.languageId == "lua") {
+					Editor = VisibleEditor
+					return;
+				}
+			})
+			if (!Editor) return;
 		}
+		let Name = Editor.document.fileName.split('/').pop()
+		let Text = Editor.document.getText()
+		Connections.forEach(Connection => {
+			const ID = `${rs.generate(7)}@${Name}`
+			Connection.send(JSON.stringify({type: "script", script: Text, ID: ID}))
+			Debug.appendLine(`[${Connection.User || "Awaiting Verfication"}]: Executing ${Name} as ${ID}`)
+		})
 	}))
+
+	Timeout = setInterval(() => {
+		Connections.forEach(Connection => {
+			if (!Connection.Updated) return Connection.terminate();
+			Connection.Updated = false
+			Connection:send(JSON.stringify({type: "keepalive"}))
+		})
+	}, 5000)
 
 	if (Item) return;
 
@@ -44,7 +81,6 @@ function activate(context) {
 	Item.show()
 }
 
-// This method is called when your extension is deactivated
 function deactivate() {
 	Server.close()
 	for (let Connection in Connections) {
@@ -52,7 +88,10 @@ function deactivate() {
 	}
 	Item.hide()
 	Item.dispose()
+	clearTimeout(Timeout)
 }
+
+Output.appendLine("[OUTPUT - Alpha_Guardians] (Centauri.luau@vnXHn3): This is a test!")
 
 module.exports = {
 	activate,

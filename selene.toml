@@ -1,0 +1,12 @@
+std = "roblox"
+
+[rules]
+empty_if = "allow"
+shadowing = "allow"
+divide_by_zero = "allow"
+parenthese_conditions = "allow"
+unscoped_variables = "allow"
+undefined_variable = "allow"
+multiple_statements = "allow"
+unbalanced_assignments = "allow"
+incorrect_standard_library_use = "allow"
