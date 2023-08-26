@@ -3,7 +3,6 @@ const Port = 13370
 const vs = require('vscode')
 const ws = require('ws')
 const rs = require('randomstring')
-const { appendFile } = require('fs')
 
 const Output = vs.window.createOutputChannel("Execution Output")
 Output.show()
