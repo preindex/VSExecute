@@ -49,6 +49,14 @@ function Init(Socket) {
 	Socket.on("message", Message => {
 		let Data = JSON.parse(Message)
 		if (!Socket.User) {
+			Connections.forEach(Connection => {
+				if (Connection.User == Data.User) {
+					Connection.terminate();
+					const Index = Connections.indexOf(Connection)
+					Connections.splice(Index, Index + 1)
+                    return;
+                }
+			})
 			Socket.User = Data.User
 		}
 		if (Data.Type == "KeepAlive") {
