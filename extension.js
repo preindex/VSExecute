@@ -54,6 +54,7 @@ function Init(Socket) {
 					Connection.terminate();
 					const Index = Connections.indexOf(Connection)
 					Connections.splice(Index, Index + 1)
+					Output.appendLine(`${Emojis.OUTPUT} [${Data.Type} - ${Data.User}] (${Data.ID || "No ID"}): Removed previous connection.`)
                     return;
                 }
 			})
