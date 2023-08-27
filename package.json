@@ -1,6 +1,7 @@
 {
   "name": "vsexecute",
   "displayName": "VSExecute",
+  "publisher": "ylo",
   "description": "A VSCode extension allowing you to execute scripts through WebSockets.",
   "version": "0.0.1",
   "engines": {
