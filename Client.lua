@@ -22,7 +22,7 @@ local KeepAlive = '{"Type":"KeepAlive","User":"'..LocalPlayer..'"}'
 local HttpService = game:GetService("HttpService")
 
 do
-    local Address, Connected = ("ws://[::1]:%d+/"):format(Port)
+    local Address, Connected = ("ws://localhost:%d+/"):format(Port) -- [::1]
     while not Connected do
         Connected, Socket = pcall(WebSocket.connect, Address)
         task.wait(1)
