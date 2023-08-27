@@ -1,15 +1,23 @@
-local wait = task.wait
+if not game:IsLoaded() then
+    game.Loaded:Wait()
+end
+
 local Port = 13370
 local Socket
 
-local Script = Instance.new('BindableEvent')
+local wait = task.wait
+local spawn = task.spawn
+
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
+
 while not LocalPlayer do
     LocalPlayer = Players.LocalPlayer
     wait()
 end
+
 LocalPlayer = LocalPlayer.Name
+
 local KeepAlive = '{"Type":"KeepAlive","User":"'..LocalPlayer..'"}'
 local HttpService = game:GetService("HttpService")
 
@@ -33,7 +41,7 @@ local function rawlog(Type, ID, Func, ...)
     end
 end
 
-Script.Event:Connect(function(Text, ID)
+local function NewScript(Text, ID)
     local Function, Output  = loadstring(Text)
     local function log(...)
         rawlog("CLIENT", ID, nil, ...)
@@ -62,14 +70,14 @@ Script.Event:Connect(function(Text, ID)
         logerror(Error)
     end)
     log("Finished execution.")
-end)
+end
 
 do -- WIP
     local LastKeepAlive = os.time()
     local self = debug.info(1, 'f')
     local function Reconnect()
         print("Reconnecting...")
-        task.spawn(self)
+        spawn(self)
     end
     Socket.OnMessage:Connect(function(Data)
         Data = HttpService:JSONDecode(Data)
@@ -78,14 +86,13 @@ do -- WIP
             LastKeepAlive = os.time()
         end
         if Data.type == "script" then
-            Script:Fire(Data.script, Data.ID)
+            spawn(NewScript, Data.script, Data.ID)
         end
     end)
-    task.spawn(function()
+    spawn(function()
         while (os.time() - LastKeepAlive) < 6 do
             wait()
         end
-        Script = Script:Destroy()
         Socket = Socket:Close()
         return Reconnect()
     end)
@@ -94,5 +101,3 @@ end
 Socket:Send(KeepAlive)
 
 rawlog("OUTPUT", "Init", nil, "This user is now connected to the network.")
-
-getgenv().rawlog = rawlog
