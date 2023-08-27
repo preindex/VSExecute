@@ -1,9 +1,3 @@
-/*
-	TODO:
-	Publish
-	headers
-*/
-
 const Port = 13370
 
 const vs = require('vscode')
