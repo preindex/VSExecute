@@ -1,24 +1,23 @@
 local wait = task.wait
 local Port = 13370
-local Connected, Socket
+local Socket
 
 local Script = Instance.new('BindableEvent')
 local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer.Name
-local KeepAlive = '{"Type":"KeepAlive","User":"'..LocalPlayer..'"}'
-
-local HttpService = game:GetService("HttpService")
-
+local LocalPlayer = Players.LocalPlayer
 while not LocalPlayer do
     LocalPlayer = Players.LocalPlayer
     wait()
 end
+LocalPlayer = LocalPlayer.Name
+local KeepAlive = '{"Type":"KeepAlive","User":"'..LocalPlayer..'"}'
+local HttpService = game:GetService("HttpService")
 
 do
-    local Address = ("ws://[::1]:%d+/"):format(Port)
+    local Address, Connected = ("ws://[::1]:%d+/"):format(Port)
     while not Connected do
         Connected, Socket = pcall(WebSocket.connect, Address)
-        task.wait(3)
+        task.wait(1)
     end
 end
 
@@ -35,12 +34,15 @@ local function rawlog(Type, ID, Func, ...)
 end
 
 Script.Event:Connect(function(Text, ID)
-    local Function  = loadstring(Text)
+    local Function, Output  = loadstring(Text)
     local function log(...)
         rawlog("CLIENT", ID, nil, ...)
     end
     local function logerror(...)
         rawlog("ERROR", ID, error, ...)
+    end
+    if not Function then
+        return logerror(Output)
     end
     setfenv(Function, setmetatable({
         logprint = function(...)
@@ -62,15 +64,32 @@ Script.Event:Connect(function(Text, ID)
     log("Finished execution.")
 end)
 
-Socket.OnMessage:Connect(function(Data)
-    Data = HttpService:JSONDecode(Data)
-    if Data.type == "keepalive" then
-        Socket:Send(KeepAlive)
+do -- WIP
+    local LastKeepAlive = os.time()
+    local self = debug.info(1, 'f')
+    local function Reconnect()
+        print("Reconnecting...")
+        task.spawn(self)
     end
-    if Data.type == "script" then
-        Script:Fire(Data.script, Data.ID)
-    end
-end)
+    Socket.OnMessage:Connect(function(Data)
+        Data = HttpService:JSONDecode(Data)
+        if Data.type == "keepalive" then
+            Socket:Send(KeepAlive)
+            LastKeepAlive = os.time()
+        end
+        if Data.type == "script" then
+            Script:Fire(Data.script, Data.ID)
+        end
+    end)
+    task.spawn(function()
+        while (os.time() - LastKeepAlive) < 6 do
+            wait()
+        end
+        Script = Script:Destroy()
+        Socket = Socket:Close()
+        return Reconnect()
+    end)
+end
 
 Socket:Send(KeepAlive)
 
