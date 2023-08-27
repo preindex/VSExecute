@@ -19,7 +19,42 @@
         "command": "vsexecute.execute",
         "title": "Execute"
       }
-    ]
+    ],
+    "configuration": {
+      "title": "VSExecute",
+      "properties": {
+        "vsexecute.single": {
+          "type": "boolean",
+          "default": false,
+          "description": "Allows only one client to execute at a time. Overrides max clients."
+        },
+        "vsexecute.maxClients": {
+          "type": "number",
+          "default": 10,
+          "description": "The maximum number of clients that can execute at the same time."
+        },
+        "vsexecute.alertExecution": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether to alert the user (in the output) when a script is executing."
+        },
+        "vsexecute.allowSelectionExecution": {
+          "type": "boolean",
+          "default": false,
+          "description": "Allows the user to execute the higlighted portion of a script."
+        },
+        "vsexecute.allowBackupEditors": {
+          "type": "boolean",
+          "default": true,
+          "description": "Allows the extension to execute other visible editors if no editor is selected."
+        },
+        "vsexecute.strictLanguageExecution": {
+          "type": "boolean",
+          "default": false,
+          "description": "Specifically only allow .lua and .txt files to be executed."
+        }
+      }
+    }
   },
   "scripts": {
     "lint": "eslint .",
