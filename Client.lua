@@ -94,3 +94,5 @@ end
 Socket:Send(KeepAlive)
 
 rawlog("OUTPUT", "Init", nil, "This user is now connected to the network.")
+
+getgenv().rawlog = rawlog

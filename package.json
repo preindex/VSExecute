@@ -3,7 +3,7 @@
   "displayName": "VSExecute",
   "publisher": "ylo",
   "description": "A VSCode extension allowing you to execute scripts through WebSockets.",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "engines": {
     "vscode": "^1.81.0"
   },
