@@ -79,7 +79,10 @@ do -- WIP
         print("Reconnecting...")
         spawn(self)
     end
-    Socket.OnMessage:Connect(function(Data)
+    local Connection = Socket.OnMessage:Connect(function(Data)
+        if not Socket then
+            return
+        end
         Data = HttpService:JSONDecode(Data)
         if Data.type == "keepalive" then
             Socket:Send(KeepAlive)
@@ -94,6 +97,7 @@ do -- WIP
             wait()
         end
         Socket = Socket:Close()
+        Connection = Connection:Disconnect()
         return Reconnect()
     end)
 end
