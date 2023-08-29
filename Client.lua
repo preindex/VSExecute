@@ -53,9 +53,9 @@ local function CheckSocket(Port)
     }).Body ~= "Ugprade Required"
 end
 
-local function Clean()
+local function Clean(Decoded)
     for Port,Close in next, Connections do
-        if CheckSocket(Port) then
+        if CheckSocket(Port) or Decoded[Port] == nil then
             Close()
         end
     end
@@ -175,9 +175,10 @@ spawn(function()
     end)
     while Continue do
         if Old ~= Data then
-            Clean()
+            local Decoded = HttpService:JSONDecode(Data)
             local Indexes = 0
-            for Port in next, HttpService:JSONDecode(Data) do
+            Clean(Decoded)
+            for Port in next, Decoded do
                 Indexes += 1
                 Connect(Port)
             end
