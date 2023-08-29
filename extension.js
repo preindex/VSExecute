@@ -1,4 +1,8 @@
-let CorrectClientVersion = "1.2"
+/*
+	TODO:
+	Fix crashing
+	Auto Updater
+*/
 
 let Random = (min, max) => {
     return Math.round(Math.random() * (max - min) + min);
@@ -11,6 +15,7 @@ const ws = require('ws')
 const fs = require('fs')
 const rs = require('randomstring')
 const fetch = require('node-fetch')
+const axios = require('axios')
 
 const Output = vs.window.createOutputChannel("Execution Output")
 Output.show()
@@ -29,8 +34,10 @@ const Emojis = {
 }
 
 let Connections = []
-let Item, D1, D2
-let Timeout, CurrentEditor
+let Item, D1, D2, CurrentEditor
+
+let Timeout, UpdateLoop
+let CurrentScriptVersion, Script
 
 let UWPPath
 let maxClients
@@ -76,7 +83,7 @@ function UpdateSettings() {
 	allowSelectionExecution = Config.get("allowSelectionExecution")
 	strictLanguageExecution = Config.get("strictLanguageExecution")
 	if (Timeout) {
-		clearInterval(Timeout)
+		Timeout = clearInterval(Timeout)
 		Ping()
 		setTimeout(ResetTimeout, 1000)
 	}
@@ -114,20 +121,21 @@ function UpdateStatus(Extra, Close) {
 	fs.writeFileSync(Path, JSON.stringify(CurrentData))
 }
 
-UpdateSettings()
-
-async function Sync(Socket) {
+function Sync(Socket) {
 	let Path
 	if (UWPPath || workspacePath == "%LocalAppData%\\Packages\\ROBLOXCORPORATION.ROBLOX_55nm5eh3cm0pr\\AC\\workspace") {
 		Path = (`${process.env.LocalAppData || process.env.HOME || process.env.USERPROFILE}\\Packages\\ROBLOXCORPORATION.ROBLOX_55nm5eh3cm0pr\\AC\\workspace\\VSExecuteClient.lua`)
 	} else if (workspacePath.length > 0) {
 		Path = (`${workspacePath}\\VSExecuteClient.lua`)
 	}
-	if (Path && fs.existsSync(Path)) {
-		fs.unlinkSync(Path)
+	if (Path) {
+		fs.writeFileSync(Path, Script)
+		Socket.send(JSON.stringify({type: "update", ID: "Client"}))
+	} else {
+		Socket.send(JSON.stringify({type: "update", ID: "Client", script: Script}))
 	}
-	vs.window.showErrorMessage("Your WebSocket's Client is outdated. Please locate the VSExecuteClient.lua file in your workspace folder and delete, then try again.")
-	return Close(Socket, "Your WebSocket's Client is outdated. Please locate the VSExecuteClient.lua file in your workspace folder and delete, then try again.", "ERROR")
+	vs.window.showInformationMessage("Sorry, we have to update something. You should be good to go. If you experience any problems, just restart the game. If you continue to have problems, DM xxxYoloxxx999 on Discord.")
+	// return Close(Socket, "Sorry, we had to update something. Please restart the game.")
 }
 
 function Init(Socket) {
@@ -146,15 +154,15 @@ function Init(Socket) {
 		}
 		if (Data.Type == "KeepAlive") {
 			Socket.Version = Data.Client
-			if (Socket.Version != "DEBUG" && Socket.Version != CorrectClientVersion) {
-                return Sync(Socket)
+			if (Socket.Version != "DEBUG" && Data.Client != CurrentScriptVersion) {
+				Sync(Socket)
 			}
-			return;
+			return
 		}
 		const Final = `${Emojis[Data.Type]} [${Data.Type} - ${Data.User}] (${Data.ID || "No ID"}): ${Data.Args.join(" ")}`
 		if (Data.Debug) {
 			Debug.appendLine(Final)
-			return;
+			return
 		}
 		if (Data.Type == "UPDATE") return UpdateStatus();
 		if (Data.Type == "CLIENT" && !alertExecution) return;
@@ -165,6 +173,15 @@ function Init(Socket) {
 	})
 	Socket.on("close", () => {
 		return Close(Socket, `This user left the network. (Requested closure)`)
+	})
+}
+
+function UpdateScript() { 
+	axios.get("https://scripts.system-exodus.com/assets/VSExecute/Client.lua").then((Response) => {
+		if (Response.status!= 200) return;
+		console.log('nuh uh')
+		Script = Response.data
+		CurrentScriptVersion = Script.replaceAll(" ", "").split('--')[1]
 	})
 }
 
@@ -222,6 +239,8 @@ function activate(context) {
 		UpdateSettings()
 	})
 
+	UpdateLoop = setInterval(UpdateScript, 7000)
+
 	UpdateStatus()
 
 	if (Item) return Item.show();
@@ -243,9 +262,11 @@ function deactivate() {
 	Item = Item.dispose()
 	D1 = D1.dispose()
 	D2 = D2.dispose()
-	clearTimeout(Timeout)
+	Timeout = clearInterval(Timeout)
+	UpdateLoop = clearInterval(UpdateLoop)
 }
 
+UpdateSettings()
 Output.appendLine("VSExecute is ready to go!")
 
 module.exports = {
