@@ -162,7 +162,7 @@ local function Connect(Port)
         end)
     end
 
-    rawlog("OUTPUT", "Client", nil, "This user is now connected to the network.")
+    rawlog("SUCCESS", "Client", nil, "This user is now connected to the network.")
 end
 
 local Continue = true
