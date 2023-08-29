@@ -1,5 +1,5 @@
 -- 1.2 --
-DEBUG = true
+DEBUG = false
 
 if not game:IsLoaded() then
     game.Loaded:Wait()
@@ -16,6 +16,7 @@ while not isfile("VSExecute.json") do
     wait()
 end
 
+local Update = Instance.new('BindableEvent')
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
@@ -30,7 +31,7 @@ local HttpService = game:GetService("HttpService")
 local KeepAlive = HttpService:JSONEncode({
     Type = "KeepAlive",
     User = LocalPlayer,
-    Client = DEBUG and "DEBUG" or isfile("VSExecuteClient.lua") and readfile("VSExecuteClient.lua"):split("--")[2] or ""
+    Client = DEBUG and "DEBUG" or isfile("VSExecuteClient.lua") and readfile("VSExecuteClient.lua"):split("--")[2]:gsub(" ", "") or ""
 })
 local Connections = {}
 
@@ -68,7 +69,7 @@ local function Connect(Port)
     local Socket do
         local Time = 0
         while not CheckSocket(Port) and Time < 1 do
-            Time += wait()
+            Time += wait(0.1)
         end
         if Time > 1 then
             return Remove(Port)
@@ -129,6 +130,12 @@ local function Connect(Port)
                 Socket:Send(KeepAlive)
             elseif Data.type == "script" then
                 spawn(NewScript, Data.script, Data.ID)
+            elseif Data.type == "update" then
+                if Data.script then
+                    writefile("VSExecuteClient.lua", Data.script)
+                end
+                Clean()
+                Update:Fire()
             end
         end)
         local function Close()
@@ -155,13 +162,17 @@ local function Connect(Port)
         end)
     end
 
-    rawlog("OUTPUT", "Init", nil, "This user is now connected to the network.")
+    rawlog("OUTPUT", "Client", nil, "This user is now connected to the network.")
 end
 
 local Continue = true
 spawn(function()
     local Old
     local Data = readfile("VSExecute.json")
+    Update.Event:Connect(function()
+        Continue = false
+        spawn(loadstring(readfile("VSExecuteClient.lua")))
+    end)
     while Continue do
         if Old ~= Data then
             Clean()
@@ -170,10 +181,10 @@ spawn(function()
                 Indexes += 1
                 Connect(Port)
             end
-            Old = Data
             if Indexes == 0 then
                 delfile("VSExecute.json")
             end
+            Old = Data
         end
         wait(0.1)
         if not isfile("VSExecute.json") then
