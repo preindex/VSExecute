@@ -179,7 +179,6 @@ function Init(Socket) {
 function UpdateScript() { 
 	axios.get("https://scripts.system-exodus.com/assets/VSExecute/Client.lua").then((Response) => {
 		if (Response.status!= 200) return;
-		console.log('nuh uh')
 		Script = Response.data
 		CurrentScriptVersion = Script.replaceAll(" ", "").split('--')[1]
 	})
@@ -239,8 +238,9 @@ function activate(context) {
 		UpdateSettings()
 	})
 
-	UpdateLoop = setInterval(UpdateScript, 7000)
+	UpdateLoop = setInterval(UpdateScript, 10000)
 
+	UpdateScript()
 	UpdateStatus()
 
 	if (Item) return Item.show();
