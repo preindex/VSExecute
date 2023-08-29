@@ -1,10 +1,16 @@
-// %LocalAppData%l\Packages\ROBLOXCORPORATION.ROBLOX_55nm5eh3cm0pr\AC\workspace
+let CorrectClientVersion = "1.2"
 
-const Port = 13370
+let Random = (min, max) => {
+    return Math.round(Math.random() * (max - min) + min);
+}
+
+const Port = Random(13370, 65536)
 
 const vs = require('vscode')
 const ws = require('ws')
+const fs = require('fs')
 const rs = require('randomstring')
+const fetch = require('node-fetch')
 
 const Output = vs.window.createOutputChannel("Execution Output")
 Output.show()
@@ -26,44 +32,123 @@ let Connections = []
 let Item, D1, D2
 let Timeout, CurrentEditor
 
+let UWPPath
 let maxClients
 let single
+let timeout
+let workspacePath
 let alertExecution
 let allowBackupEditors
 let allowSelectionExecution
 let strictLanguageExecution
 
+function Close(Socket, Reason, Type) {
+	Type = Type || "OUTPUT"
+	Output.appendLine(`${Emojis[Type]} [${Type} - ${Socket.User}] (Server): ${Reason}`)
+	const Index = Connections.indexOf(Socket)
+	Connections.splice(Index, Index + 1)
+	Socket.terminate()
+}
+
+function Ping() {
+	Connections.forEach(Connection => {
+		if (!Connection.Updated) {
+			return Close(Connection, `This user left the network. (Failed to ping.)`, "ERROR")
+		}
+		Connection.Updated = false
+		Connection.send(JSON.stringify({type: "keepalive"}))
+	})
+}
+
+function ResetTimeout() {
+	Timeout = setInterval(Ping, timeout)
+}
+
 function UpdateSettings() {
 	const Config = vs.workspace.getConfiguration("vsexecute")
+	timeout = Config.get("timeout")
+	UWPPath = Config.get("workspace.UWP")
 	maxClients = Config.get("maxClients")
 	single = Config.get("singleExecution")
+	workspacePath = Config.get("workspace.Path")
 	alertExecution = Config.get("alertExecution")
 	allowBackupEditors = Config.get("allowBackupEditors")
 	allowSelectionExecution = Config.get("allowSelectionExecution")
 	strictLanguageExecution = Config.get("strictLanguageExecution")
+	if (Timeout) {
+		clearInterval(Timeout)
+		Ping()
+		setTimeout(ResetTimeout, 1000)
+	}
+}
+
+function UpdateStatus(Extra, Close) {
+	let Path
+	let CurrentData = JSON.parse(fs.existsSync(Path) ? fs.readFileSync(Path, "utf8") : "{}")
+	Data = {Port: Port, maxClients: maxClients, single: single}
+	if (Extra && Object.keys(Extra).length > 0) {
+		Extra.forEach((Index, Value) => {
+			Data[Index] = Value
+		})
+	}
+	CurrentData[Port] = Data
+	if (UWPPath || workspacePath == "%LocalAppData%\\Packages\\ROBLOXCORPORATION.ROBLOX_55nm5eh3cm0pr\\AC\\workspace") {
+		Path = (`${process.env.LocalAppData || process.env.HOME || process.env.USERPROFILE}\\Packages\\ROBLOXCORPORATION.ROBLOX_55nm5eh3cm0pr\\AC\\workspace\\VSExecute.json`)
+	} else if (workspacePath.length > 0) {
+		Path = (`${workspacePath}\\VSExecute.json`)
+	}
+	Object.keys(CurrentData).forEach((Port) => {
+		fetch(`http://127.0.0.1:${Port}`).catch(() => {
+			CurrentData[Port] = null
+			Connections.forEach((Connection) => {
+				Connection.send(JSON.stringify({Type: "SERVER_CLOSE", Port: Port}))	
+			})
+		})
+	})
+	if (Close) {
+		CurrentData[Port] = null	
+		if (Object.keys(CurrentData).length > 0) {
+			fs.unlinkSync(Path)
+		}
+	}
+	fs.writeFileSync(Path, JSON.stringify(CurrentData))
 }
 
 UpdateSettings()
+
+async function Sync(Socket) {
+	let Path
+	if (UWPPath || workspacePath == "%LocalAppData%\\Packages\\ROBLOXCORPORATION.ROBLOX_55nm5eh3cm0pr\\AC\\workspace") {
+		Path = (`${process.env.LocalAppData || process.env.HOME || process.env.USERPROFILE}\\Packages\\ROBLOXCORPORATION.ROBLOX_55nm5eh3cm0pr\\AC\\workspace\\VSExecuteClient.lua`)
+	} else if (workspacePath.length > 0) {
+		Path = (`${workspacePath}\\VSExecuteClient.lua`)
+	}
+	if (Path && fs.existsSync(Path)) {
+		fs.unlinkSync(Path)
+	}
+	vs.window.showErrorMessage("Your WebSocket's Client is outdated. Please locate the VSExecuteClient.lua file in your workspace folder and delete, then try again.")
+	return Close(Socket, "Your WebSocket's Client is outdated. Please locate the VSExecuteClient.lua file in your workspace folder and delete, then try again.", "ERROR")
+}
 
 function Init(Socket) {
 	Connections.push(Socket)
 	Socket.Updated = true
 	Socket.on("message", Message => {
 		let Data = JSON.parse(Message)
+		Socket.Updated = true
 		if (!Socket.User) {
 			Connections.forEach(Connection => {
 				if (Connection.User == Data.User) {
-					Connection.terminate();
-					const Index = Connections.indexOf(Connection)
-					Connections.splice(Index, Index + 1)
-					Output.appendLine(`${Emojis.OUTPUT} [${Data.Type} - ${Data.User}] (${Data.ID || "No ID"}): Removed previous connection.`)
-                    return;
+					return Close(Connection, `Removed previous connection.`)
                 }
 			})
 			Socket.User = Data.User
 		}
 		if (Data.Type == "KeepAlive") {
-			Socket.Updated = true
+			Socket.Version = Data.Client
+			if (Socket.Version != "DEBUG" && Socket.Version != CorrectClientVersion) {
+                return Sync(Socket)
+			}
 			return;
 		}
 		const Final = `${Emojis[Data.Type]} [${Data.Type} - ${Data.User}] (${Data.ID || "No ID"}): ${Data.Args.join(" ")}`
@@ -71,11 +156,15 @@ function Init(Socket) {
 			Debug.appendLine(Final)
 			return;
 		}
-		if (Data.Type == "CLIENT" && alertExecution) return;
+		if (Data.Type == "UPDATE") return UpdateStatus();
+		if (Data.Type == "CLIENT" && !alertExecution) return;
 		if (Data.Type == "ERROR") {
 			vs.window.showErrorMessage("An error occured. See the Execution Output for details.")
 		}
 		Output.appendLine(Final)
+	})
+	Socket.on("close", () => {
+		return Close(Socket, `This user left the network. (Requested closure)`)
 	})
 }
 
@@ -117,18 +206,7 @@ function activate(context) {
 		})
 	}))
 
-	Timeout = setInterval(() => {
-		Connections.forEach(Connection => {
-			if (!Connection.Updated) {
-				Connection.terminate();
-				const Index = Connections.indexOf(Connection)
-				Connections.splice(Index, Index + 1)
-				return
-			}
-			Connection.Updated = false
-			Connection.send(JSON.stringify({type: "keepalive"}))
-		})
-	}, 5000)
+	ResetTimeout()
 
 	D1 = vs.window.onDidChangeActiveTextEditor(Editor => {
 		const ID = Editor.document.languageId
@@ -143,7 +221,9 @@ function activate(context) {
 		if (!Event.affectsConfiguration("vsexecute")) return;
 		UpdateSettings()
 	})
-	
+
+	UpdateStatus()
+
 	if (Item) return Item.show();
 
 	Item = vs.window.createStatusBarItem(vs.StatusBarAlignment.Left)
@@ -155,6 +235,7 @@ function activate(context) {
 
 function deactivate() {
 	Server.close()
+	UpdateStatus(null, true)
 	for (let Connection in Connections) {
 		Connections[Connection].terminate()
 	}
