@@ -1,4 +1,4 @@
-if not isfile("WebSocketClient.lua") then
-    writefile("WebSocketClient.lua", game:HttpGet("https://scripts.system-exodus.com/assets/VSExecute/Client.lua"))
+if not isfile("VSExecuteClient.lua") then
+    writefile("VSExecuteClient.lua", game:HttpGet("https://scripts.system-exodus.com/assets/VSExecute/Client.lua"))
 end
-loadstring(readfile("WebSocketClient.lua"))()
+loadstring(readfile("VSExecuteClient.lua"))()
