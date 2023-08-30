@@ -1,4 +1,4 @@
--- 1.2 --
+-- 1.3 --
 DEBUG = false
 
 if not game:IsLoaded() then
