@@ -1,4 +1,4 @@
--- 1.3 --
+-- 1.4 --
 DEBUG = false
 
 if not game:IsLoaded() then
@@ -35,6 +35,13 @@ local KeepAlive = HttpService:JSONEncode({
 })
 local Connections = {}
 
+local function CheckSocket(Port)
+    return request({
+        Url = "http://127.0.0.1:"..Port,
+        Method = "GET"
+    }).Body ~= "Ugprade Required"
+end
+
 local function Remove(Port)
     if CheckSocket(Port) then
         return
@@ -44,13 +51,6 @@ local function Remove(Port)
         Data[Port] = nil
         writefile("VSExecute.json", HttpService:JSONEncode(Data))
     end
-end
-
-local function CheckSocket(Port)
-    return request({
-        Url = "http://127.0.0.1:"..Port,
-        Method = "GET"
-    }).Body ~= "Ugprade Required"
 end
 
 local function Clean(Decoded)
@@ -142,10 +142,21 @@ local function Connect(Port)
         end)
         local function Close()
             if Socket then
-                Socket = Socket:Close()
+                local NewSocket
+                for _,v in next, Connections do
+                    if v ~= Port then
+                        NewSocket = v
+                        break
+                    end
+                end
+                Socket:Close()
+                Socket = NewSocket
             end
             if Connection then
                 Connection = Connection:Disconnect()
+            end
+            if isfile("VSExecute.json") then
+                Remove(Port)
             end
             Connections[Port] = nil
         end
@@ -158,9 +169,6 @@ local function Connect(Port)
                 wait(0.1)
             end
             Close()
-            if isfile("VSExecute.json") then
-                Remove(Port)
-            end
         end)
     end
 
