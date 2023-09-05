@@ -78,12 +78,14 @@ local function Connect(Port)
     end
 
     local function rawlog(Type, ID, Func, ...)
-        Socket:Send(HttpService:JSONEncode({
-            ID = ID,
-            Type = Type,
-            User = LocalPlayer,
-            Args = {...}
-        }))
+        if Socket then
+            Socket:Send(HttpService:JSONEncode({
+                ID = ID,
+                Type = Type,
+                User = LocalPlayer,
+                Args = {...}
+            }))
+        end
         if Func then
             Func(...)
         end
