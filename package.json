@@ -56,13 +56,19 @@
         },
         "vsexecute.workspace.Path": {
           "type": "string",
+          "default:": "UWP",
+          "enumDescriptions": ["Each choice is a path leading to a possible workspace depending on the choice. Use Custom to use CustomPath."],
+          "enum": ["UWP", "Mac", "Custom"]
+        },
+        "vsexecute.workspace.CustomPath": {
+          "type": "string",
           "default": "",
           "description": "The path to the executor's workspace folder. Required for communication (if UWP is disabled)."
         },
         "vsexecute.workspace.UWP": {
           "type": "boolean",
           "default": true,
-          "description": "Whether the extension is running in a UWP environment. Overrides workspace path."
+          "description": "Templates usual templates for path. Overrides workspace path."
         },
         "vsexecute.timeout": {
           "type": "number",

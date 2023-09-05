@@ -1,4 +1,13 @@
 -- 1.4 --
+
+--[[ 
+    TODO:
+    Add alternative port method
+    if port goes down, find new port and repeat
+    Make workspace path a dropdown menu (still keep the custom path textbox)
+    add MAC support
+]]
+
 DEBUG = false
 
 if not game:IsLoaded() then
@@ -54,9 +63,17 @@ local function Remove(Port)
 end
 
 local function Clean(Decoded)
-    for Port,Close in next, Connections do
+    for Port,Socket in next, Connections do
         if CheckSocket(Port) or Decoded[Port] == nil then
-            Close()
+            Socket.Close()
+        end
+    end
+end
+
+local function FindAlternativeSocket()
+    for Port,Socket in next, Connections do
+        if CheckSocket(Port) then
+            return Port, Socket.Connection
         end
     end
 end
@@ -79,6 +96,9 @@ local function Connect(Port)
 
     local function rawlog(Type, ID, Func, ...)
         if Socket then
+            if not CheckSocket(Port) then
+                Port, Socket = FindAlternativeSocket()
+            end
             Socket:Send(HttpService:JSONEncode({
                 ID = ID,
                 Type = Type,
@@ -142,15 +162,7 @@ local function Connect(Port)
         end)
         local function Close()
             if Socket then
-                local NewSocket
-                for _,v in next, Connections do
-                    if v ~= Port then
-                        NewSocket = v
-                        break
-                    end
-                end
                 Socket:Close()
-                Socket = NewSocket
             end
             if Connection then
                 Connection = Connection:Disconnect()
@@ -160,7 +172,7 @@ local function Connect(Port)
             end
             Connections[Port] = nil
         end
-        Connections[Port] = Close
+        Connections[Port] = {Close = Close, Connection = Socket}
         Socket.OnClose:Connect(function()
             Close()
         end)
