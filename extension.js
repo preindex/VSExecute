@@ -1,7 +1,7 @@
 /*
 	TODO:
 	Fix crashing
-	Auto Updater
+	fix workspace and add default and workspace path
 */
 
 let Random = (min, max) => {

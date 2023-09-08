@@ -1,4 +1,13 @@
--- 1.2 --
+-- 1.4 --
+
+--[[ 
+    TODO:
+    Add alternative port method
+    if port goes down, find new port and repeat
+    Make workspace path a dropdown menu (still keep the custom path textbox)
+    add MAC support
+]]
+
 DEBUG = false
 
 if not game:IsLoaded() then
@@ -35,6 +44,13 @@ local KeepAlive = HttpService:JSONEncode({
 })
 local Connections = {}
 
+local function CheckSocket(Port)
+    return request({
+        Url = "http://127.0.0.1:"..Port,
+        Method = "GET"
+    }).Body ~= "Ugprade Required"
+end
+
 local function Remove(Port)
     if CheckSocket(Port) then
         return
@@ -46,17 +62,18 @@ local function Remove(Port)
     end
 end
 
-local function CheckSocket(Port)
-    return request({
-        Url = "http://127.0.0.1:"..Port,
-        Method = "GET"
-    }).Body ~= "Ugprade Required"
+local function Clean(Decoded)
+    for Port,Socket in next, Connections do
+        if CheckSocket(Port) or Decoded[Port] == nil then
+            Socket.Close()
+        end
+    end
 end
 
-local function Clean(Decoded)
-    for Port,Close in next, Connections do
-        if CheckSocket(Port) or Decoded[Port] == nil then
-            Close()
+local function FindAlternativeSocket()
+    for Port,Socket in next, Connections do
+        if CheckSocket(Port) then
+            return Port, Socket.Connection
         end
     end
 end
@@ -78,12 +95,17 @@ local function Connect(Port)
     end
 
     local function rawlog(Type, ID, Func, ...)
-        Socket:Send(HttpService:JSONEncode({
-            ID = ID,
-            Type = Type,
-            User = LocalPlayer,
-            Args = {...}
-        }))
+        if Socket then
+            if not CheckSocket(Port) then
+                Port, Socket = FindAlternativeSocket()
+            end
+            Socket:Send(HttpService:JSONEncode({
+                ID = ID,
+                Type = Type,
+                User = LocalPlayer,
+                Args = {...}
+            }))
+        end
         if Func then
             Func(...)
         end
@@ -140,14 +162,17 @@ local function Connect(Port)
         end)
         local function Close()
             if Socket then
-                Socket = Socket:Close()
+                Socket:Close()
             end
             if Connection then
                 Connection = Connection:Disconnect()
             end
+            if isfile("VSExecute.json") then
+                Remove(Port)
+            end
             Connections[Port] = nil
         end
-        Connections[Port] = Close
+        Connections[Port] = {Close = Close, Connection = Socket}
         Socket.OnClose:Connect(function()
             Close()
         end)
@@ -156,9 +181,6 @@ local function Connect(Port)
                 wait(0.1)
             end
             Close()
-            if isfile("VSExecute.json") then
-                Remove(Port)
-            end
         end)
     end
 
