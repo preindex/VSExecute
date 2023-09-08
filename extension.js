@@ -91,7 +91,6 @@ function UpdateSettings() {
 
 function UpdateStatus(Extra, Close) {
 	let Path
-	let CurrentData = JSON.parse(fs.existsSync(Path) ? fs.readFileSync(Path, "utf8") : "{}")
 	Data = {Port: Port, maxClients: maxClients, single: single}
 	if (Extra && Object.keys(Extra).length > 0) {
 		Extra.forEach((Index, Value) => {
@@ -104,6 +103,7 @@ function UpdateStatus(Extra, Close) {
 	} else if (workspacePath.length > 0) {
 		Path = (`${workspacePath}\\VSExecute.json`)
 	}
+	let CurrentData = JSON.parse(fs.existsSync(Path) ? fs.readFileSync(Path, "utf8") : "{}")
 	Object.keys(CurrentData).forEach((Port) => {
 		fetch(`http://127.0.0.1:${Port}`).catch(() => {
 			CurrentData[Port] = null
