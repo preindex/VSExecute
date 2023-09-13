@@ -52,7 +52,7 @@ local function CheckSocket(Port)
 end
 
 local function Remove(Port)
-    if CheckSocket(Port) then
+    if not isfile("VSExecute.json") or CheckSocket(Port) then
         return
     end
     local Data = HttpService:JSONDecode(readfile("VSExecute.json"))
@@ -167,9 +167,7 @@ local function Connect(Port)
             if Connection then
                 Connection = Connection:Disconnect()
             end
-            if isfile("VSExecute.json") then
-                Remove(Port)
-            end
+            Remove(Port)
             Connections[Port] = nil
         end
         Connections[Port] = {Close = Close, Connection = Socket}

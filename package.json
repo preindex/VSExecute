@@ -3,7 +3,7 @@
   "displayName": "VSExecute",
   "publisher": "ylo",
   "description": "A VSCode extension allowing you to execute scripts through WebSockets.",
-  "version": "0.2.0",
+  "version": "0.4.0",
   "engines": {
     "vscode": "^1.81.0"
   },
@@ -57,8 +57,14 @@
         "vsexecute.workspace.Path": {
           "type": "string",
           "default:": "UWP",
-          "enumDescriptions": ["Each choice is a path leading to a possible workspace depending on the choice. Use Custom to use CustomPath."],
-          "enum": ["UWP", "Mac", "Custom"]
+          "enumDescriptions": [
+            "Each choice is a path leading to a possible workspace depending on the choice. Use Custom to use CustomPath."
+          ],
+          "enum": [
+            "UWP",
+            "Mac",
+            "Custom"
+          ]
         },
         "vsexecute.workspace.CustomPath": {
           "type": "string",

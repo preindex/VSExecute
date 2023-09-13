@@ -104,14 +104,14 @@ function UpdateStatus(Extra, Close) {
 		Path = (`${workspacePath}\\VSExecute.json`)
 	}
 	let CurrentData = JSON.parse(fs.existsSync(Path) ? fs.readFileSync(Path, "utf8") : "{}")
-	Object.keys(CurrentData).forEach((Port) => {
-		fetch(`http://127.0.0.1:${Port}`).catch(() => {
-			CurrentData[Port] = null
-			Connections.forEach((Connection) => {
-				Connection.send(JSON.stringify({Type: "SERVER_CLOSE", Port: Port}))	
-			})
-		})
-	})
+	// Object.keys(CurrentData).forEach((Port) => {
+	// 	fetch(`http://127.0.0.1:${Port}`).catch(() => {
+	// 		CurrentData[Port] = null
+	// 		Connections.forEach((Connection) => {
+	// 			Connection.send(JSON.stringify({Type: "SERVER_CLOSE", Port: Port}))	
+	// 		})
+	// 	})
+	// })
 	if (Close) {
 		CurrentData[Port] = null	
 		if (Object.keys(CurrentData).length > 0) {
