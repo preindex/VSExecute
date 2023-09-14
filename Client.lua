@@ -1,4 +1,4 @@
--- 1.4 --
+-- 1.4.1 --
 
 --[[ 
     TODO:
@@ -51,8 +51,8 @@ local function CheckSocket(Port)
     }).Body ~= "Ugprade Required"
 end
 
-local function Remove(Port)
-    if not isfile("VSExecute.json") or CheckSocket(Port) then
+local function Remove(Port, Check)
+    if not isfile("VSExecute.json") or Check and not CheckSocket(Port) then
         return
     end
     local Data = HttpService:JSONDecode(readfile("VSExecute.json"))
@@ -64,7 +64,7 @@ end
 
 local function Clean(Decoded)
     for Port,Socket in next, Connections do
-        if CheckSocket(Port) or Decoded[Port] == nil then
+        if not CheckSocket(Port) or Decoded and Decoded[Port] == nil then
             Socket.Close()
         end
     end
@@ -80,7 +80,7 @@ end
 
 local function Connect(Port)
     if Connections[Port] then
-        return
+        return Remove(Port, true)
     end
 
     local Socket do

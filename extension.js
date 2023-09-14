@@ -97,7 +97,6 @@ function UpdateStatus(Extra, Close) {
 			Data[Index] = Value
 		})
 	}
-	CurrentData[Port] = Data
 	if (UWPPath || workspacePath == "%LocalAppData%\\Packages\\ROBLOXCORPORATION.ROBLOX_55nm5eh3cm0pr\\AC\\workspace") {
 		Path = (`${process.env.LocalAppData || process.env.HOME || process.env.USERPROFILE}\\Packages\\ROBLOXCORPORATION.ROBLOX_55nm5eh3cm0pr\\AC\\workspace\\VSExecute.json`)
 	} else if (workspacePath.length > 0) {
@@ -118,6 +117,7 @@ function UpdateStatus(Extra, Close) {
 			fs.unlinkSync(Path)
 		}
 	}
+	CurrentData[Port] = Data
 	fs.writeFileSync(Path, JSON.stringify(CurrentData))
 }
 
