@@ -43,7 +43,7 @@ let UWPPath
 let maxClients
 let single
 let timeout
-let workspacePath
+let workspacePath, workspaceType
 let alertExecution
 let allowBackupEditors
 let allowSelectionExecution
@@ -77,7 +77,8 @@ function UpdateSettings() {
 	UWPPath = Config.get("workspace.UWP")
 	maxClients = Config.get("maxClients")
 	single = Config.get("singleExecution")
-	workspacePath = Config.get("workspace.Path")
+	workspaceType = Config.get("workspace.Path")
+	workspacePath = Config.get("workspace.CustomPath")
 	alertExecution = Config.get("alertExecution")
 	allowBackupEditors = Config.get("allowBackupEditors")
 	allowSelectionExecution = Config.get("allowSelectionExecution")
@@ -99,7 +100,7 @@ function UpdateStatus(Extra, Close) {
 	}
 	if (UWPPath || workspacePath == "%LocalAppData%\\Packages\\ROBLOXCORPORATION.ROBLOX_55nm5eh3cm0pr\\AC\\workspace") {
 		Path = (`${process.env.LocalAppData || process.env.HOME || process.env.USERPROFILE}\\Packages\\ROBLOXCORPORATION.ROBLOX_55nm5eh3cm0pr\\AC\\workspace\\VSExecute.json`)
-	} else if (workspacePath.length > 0) {
+	} else if (workspaceType == "Custom" && workspacePath.length > 0) {
 		Path = (`${workspacePath}\\VSExecute.json`)
 	}
 	let CurrentData = JSON.parse(fs.existsSync(Path) ? fs.readFileSync(Path, "utf8") : "{}")
