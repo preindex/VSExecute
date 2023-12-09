@@ -1,4 +1,4 @@
--- 1.4.1 --
+-- 1.4.2 --
 
 --[[ 
     TODO:
@@ -48,7 +48,7 @@ local function CheckSocket(Port)
     return request({
         Url = "http://127.0.0.1:"..Port,
         Method = "GET"
-    }).Body ~= "Ugprade Required"
+    }).Body == "Upgrade Required"
 end
 
 local function Remove(Port, Check)
@@ -191,7 +191,12 @@ spawn(function()
     local Data = readfile("VSExecute.json")
     Update.Event:Connect(function()
         Continue = false
+        if getgenv().VSExecuteUpdate then
+            return
+        end
+        getgenv().VSExecuteUpdate = true
         spawn(loadstring(readfile("VSExecuteClient.lua")))
+        getgenv().VSExecuteUpdate = nil
     end)
     while Continue do
         if Old ~= Data then
